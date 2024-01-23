@@ -10,13 +10,23 @@ namespace Bank
     {
         public string BankName { get; set; }
         public string BankId { get; set; }
+        public decimal RTGSChargeSameBank { get; set; } = 0;
+        public decimal IMPSChargeSameBank { get; set; } = (decimal)0.05;
+        public decimal RTGSChargeOtherBank { get; set; } = (decimal)0.02;
+        public decimal IMPSChargeOtherBank { get; set; } = (decimal)0.06;
+
         public List<Staff> staff = new List<Staff>();
         public List<Account> accounts = new List<Account>();
+        public Dictionary<string,decimal> currency = new Dictionary<string,decimal>();
+        public List<Transaction> transactions = new List<Transaction>();
+
+        public string defaultCurrency = "INR";
 
         public Bank(string bankName)
         {
             BankName = bankName;
-            BankId = bankName.Substring(0,3) + DateTime.Now.ToString("M/d/yyyy");
+            BankId = bankName.Substring(0,3) + DateTime.Now.ToString("ddMMyyyy");
+            currency.Add(defaultCurrency, 1);
         }
     }
 }

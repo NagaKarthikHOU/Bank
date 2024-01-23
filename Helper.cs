@@ -17,15 +17,6 @@ namespace Bank
                 n = Console.ReadLine();
                 if (typeof(T)==typeof(string))
                 {
-                    //if (n.Length <= 12)
-                    //{
-                    //    return (T)Convert.ChangeType(n, typeof(T));
-                    //}
-                    //else
-                    //{
-                    //    Console.WriteLine("Enter 6 to 12-digit vehicle Number");
-                    //    return Input<T>();  
-                    //} 
                     return (T)Convert.ChangeType(n, typeof(T));
                 }
                 else
@@ -68,19 +59,67 @@ namespace Bank
                 Console.WriteLine("7. View account transaction history");
                 Console.WriteLine("8. Revert transaction\n9. Exit");
                 int option = Helper.Input<int>();
+                string accountId = "";
                 switch (option)
                 {
                     case 1:
                         staffService.CreateAccount(Helper.AccountHolderName(), Helper.AccountHolderPassword());
                         break;
                     case 2:
-                        string accountId = Input<string>();
+                        Console.Write("Enter AccountId");
+                        accountId = Input<string>();
                         staffService.UpdateAccount(accountId);
+                        break;
+                    case 3:
+                        Console.Write("Enter AccountId");
+                        accountId = Input<string>();
+                        staffService.DeleteAccount(accountId);
+                        break;
+                    case 4:
+                        Console.Write("Enter Currency : ");
+                        string currency = Input<string>();
+                        Console.Write("Enter Exchange Rate : ");
+                        decimal exchangeRate = Input<decimal>();
+                        staffService.AddCurrency(currency, exchangeRate);
+                        break;
+                    case 5:
+                        Console.Write("Enter Service Type : ");
+                        string serviceType = Input<string>();
+                        Console.Write("Enter Charge : ");
+                        decimal charge = Input<decimal>();
+                        staffService.AddServiceChargeSameBank(serviceType, charge);
+                        break;
+                    case 6:
+                        Console.Write("Enter Service Type : ");
+                        string serviceType1 = Input<string>();
+                        Console.Write("Enter Charge : ");
+                        decimal charge1 = Input<decimal>();
+                        staffService.AddServiceChargeOtherBank(serviceType1, charge1);
+                        break;
+                    case 7:
+                        Console.Write("Enter AccountId : ");
+                        accountId = Input<string>();
+                        staffService.ViewTransactionHistory(accountId);
+                        break;
+                    case 8:
+                        Console.Write("Enter Transaction Id : ");
+                        string transactionId = Input<string>();
+                        staffService.RevertTransaction(transactionId);
                         break;
                     case 9:
                         return;
                 }
             }
+        }
+        public static string StaffMemberName()
+        {
+            Console.WriteLine("Enter Name : ");
+            return Input<string>();
+        }
+        public static string StaffMemberPassword()
+        {
+            Console.WriteLine("Enter Password : ");
+            return Input<string>();
         }
         public static string AccountHolderName()
         {
@@ -105,7 +144,10 @@ namespace Bank
                     case 1:
                         Console.WriteLine("Enter Deposit Amount");
                         decimal depositeAmount = Helper.Input<decimal>();
-                        userService.Deposite(account, depositeAmount);
+                        Console.WriteLine("Enter Currency : ");
+                        string currency = Helper.Input<string>();
+                        decimal convertedAmount = userService.ConvertCurrency(currency,depositeAmount);
+                        userService.Deposite(account, convertedAmount);
                         break;
                     case 2:
                         Console.WriteLine("Enter Withdraw Amount");
@@ -113,16 +155,21 @@ namespace Bank
                         userService.Withdraw(account, withdrawAmount);
                         break;
                     case 3:
-                        Console.WriteLine("Enter Recipient Name : ");
+                        Console.WriteLine("Enter Bank Name : ");
+                        string bankName = Helper.Input<string>();
+                        Console.WriteLine("Enter Recipient AccountId : ");
                         string accountId = Helper.Input<string>();
                         Console.WriteLine("Enter Amount to Transfer : ");
                         decimal amount = Helper.Input<decimal>();
-                        userService.TransferFunds(accountId, account, amount);
+                        Console.WriteLine("Enter Service Type : ");
+                        string serviceType = Helper.Input<string>();
+                        userService.TransferFunds(bankName,accountId, account, amount,serviceType);
                         break;
                     case 4:
-                        Console.WriteLine(account.Balance);
+                        Console.WriteLine(account.Balance + " INR ");
                         break;
                     case 5:
+                        userService.TransactionHistory(account.AccountId);
                         break;
                     case 6:
                         return;
