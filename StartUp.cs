@@ -4,10 +4,12 @@ namespace Bank
 {
     class StartUp
     {
+       
         public void BankSimulation(Bank bank)
         {
-            BankStaffService staffService = new BankStaffService(bank);
-            AccountHolderService userService = new AccountHolderService(bank);
+            BankService bankService = new BankService(bank);
+            IBankStaffService staffService = new BankStaffService(bank);
+            IAccountHolderService userService = new AccountHolderService(bank);
             while (true)
             {
                 Console.WriteLine("\n1. Create Bank Staff \n2. Login as bank staff \n3. Login as Account holder\n4. Exit");
@@ -15,14 +17,14 @@ namespace Bank
                 switch (choice)
                 {
                     case 1:
-                        staffService.CreateBankStaff(Helper.StaffMemberName(), Helper.StaffMemberPassword());
+                        bankService.CreateBankStaff(Helper.StaffMemberName(), Helper.StaffMemberPassword());
                         break;
                     case 2:
                         Console.Write("Enter Bank Staff Username : ");
                         string staffUsername = Helper.Input<string>();
                         Console.Write("Enter Bank Staff Password : ");
                         string staffPassword = Helper.Input<string>();
-                        Staff authenticateStaff = staffService.AuthenticateStaff(staffUsername, staffPassword);
+                        Staff authenticateStaff = bankService.AuthenticateStaff(staffUsername, staffPassword);
                         if (authenticateStaff != null)
                         {
                             Helper.StaffActions(staffService);
@@ -33,10 +35,10 @@ namespace Bank
                         }
                         break;
                     case 3:
-                        Account account = userService.AuthenticateUser(Helper.AccountHolderName(), Helper.AccountHolderPassword());
+                        Account account = bankService.AuthenticateUser(Helper.AccountHolderName(), Helper.AccountHolderPassword());
                         if (account != null)
                         {
-                            Helper.PerformTransactions(account, userService);
+                            Helper.PerformTransactions(account, userService,bankService);
                         }
                         else
                         {
@@ -51,6 +53,7 @@ namespace Bank
                 }
             }
         }
+        public static List<Bank> banks = new List<Bank>();
         static void Main()
         {
             StartUp startUp = new StartUp();
@@ -65,14 +68,14 @@ namespace Bank
                     Console.WriteLine("Enter Bank Name : ");
                     string bankName = Helper.Input<string>();
                     Bank bank = new Bank(bankName);
-                    SetUpBank.banks.Add(bank);
+                    banks.Add(bank);
                     startUp.BankSimulation(bank);
                 }
                 else if (a == 2)
                 {
                     Console.WriteLine("Enter Bank Name : ");
                     string bankName = Helper.Input<string>();
-                    Bank bank = SetUpBank.banks.Find(a=>a.BankName == bankName);
+                    Bank bank = banks.Find(a=>a.BankName == bankName);
                     startUp.BankSimulation(bank);
                 }
                 else if (a == 3)

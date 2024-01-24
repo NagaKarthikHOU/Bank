@@ -13,8 +13,8 @@ namespace Bank
         public string DestinationAccountId { get; set; }
         public decimal Amount { get; set; } 
 
-        public DateTime Time { get; set; }
-        public Transaction(string transactionId,string sourceAccountId,string destinationAccountId,decimal amount,DateTime time)
+        public string Time { get; set; }
+        public Transaction(string transactionId,string sourceAccountId,string destinationAccountId,decimal amount,string time)
         {
             TransactionId = transactionId;
             SourceAccountId = sourceAccountId;

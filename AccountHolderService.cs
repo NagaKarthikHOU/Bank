@@ -6,21 +6,28 @@ using System.Threading.Tasks;
 
 namespace Bank
 {
-    class AccountHolderService
+    interface IAccountHolderService
+    {
+        void Deposite(Account account,decimal amount);
+        void Withdraw(Account account,decimal amount);
+        void TransferFunds(string bankName, string recipientAccountId, Account account, decimal amount, string serviceType);
+        void TransactionHistory(string accountId);
+        
+
+    }
+    class AccountHolderService : IAccountHolderService
     {
         private Bank bank;
         public AccountHolderService(Bank bank)
         {
             this.bank = bank;
         }
-        public Account AuthenticateUser(string username, string password)
-        {
-            return bank.accounts.Find(u => u.AccountHolderName == username && u.Password == password);
-        }
+        
         public void Deposite(Account account,decimal amount)
         {
              account.Balance += amount;
-             DateTime time = DateTime.Now;
+             DateTime dateTime = DateTime.Now;
+             string time = dateTime.ToString("HH:mm:ss");
              string transactionId = "TXN" + bank.BankId + account.AccountId + time;
              Transaction transaction = new Transaction(transactionId,account.AccountId,account.AccountId,amount,time);
              bank.transactions.Add(transaction);
@@ -32,7 +39,8 @@ namespace Bank
             if (account.Balance >= amount)
             {
                 account.Balance -= amount;
-                DateTime time = DateTime.Now;
+                DateTime dateTime = DateTime.Now;
+                string time = dateTime.ToString("HH:mm:ss");
                 string transactionId = "TXN" + bank.BankId + account.AccountId + time;
                 Transaction transaction = new Transaction(transactionId, account.AccountId, account.AccountId, amount,time);
                 bank.transactions.Add(transaction);
@@ -64,7 +72,8 @@ namespace Bank
                         }
                         account.Balance = account.Balance - amount - taxAmount;
                         recipientAccount.Balance += amount;
-                        DateTime time = DateTime.Now;
+                        DateTime dateTime = DateTime.Now;
+                        string time = dateTime.ToString("HH:mm:ss");
                         string transactionId = "TXN" + bank.BankId + account.AccountId + time;
                         Transaction transaction = new Transaction(transactionId, account.AccountId, recipientAccountId, amount, time);
                         bank.transactions.Add(transaction);
@@ -83,7 +92,7 @@ namespace Bank
             }
             else
             {
-                Bank recipientBank = SetUpBank.banks.Find(a=>a.BankName == bankName);
+                Bank recipientBank = StartUp.banks.Find(a=>a.BankName == bankName);
                 var recipientAccount = recipientBank.accounts.Find(a => a.AccountId == recipientAccountId);
                 if (recipientAccount != null)
                 {
@@ -99,10 +108,12 @@ namespace Bank
                         }
                         account.Balance = account.Balance - amount - taxAmount;
                         recipientAccount.Balance += amount;
-                        DateTime time = DateTime.Now;
+                        DateTime dateTime = DateTime.Now;
+                        string time = dateTime.ToString("HH:mm:ss");
                         string transactionId = "TXN" + recipientBank.BankId + account.AccountId + time;
                         Transaction transaction = new Transaction(transactionId, account.AccountId, recipientAccountId, amount, time);
                         bank.transactions.Add(transaction);
+                        recipientBank.transactions.Add(transaction);
                         Console.WriteLine("Transfer successfull");
                         Console.WriteLine("Transaction Id : " + transactionId);
                     }
@@ -113,22 +124,16 @@ namespace Bank
                 }
             }
         }
-        public decimal ConvertCurrency(string currency,decimal amount)
-        {
-            amount = amount * bank.currency[currency];
-            return amount;
-        }
+      
         public void TransactionHistory(string accountId)
         {
-            foreach(var transaction in bank.transactions)
+            foreach (var transaction in bank.transactions)
             {
-                if(transaction.SourceAccountId == accountId)
+                if (transaction.SourceAccountId == accountId || transaction.DestinationAccountId == accountId)
                 {
-                    Console.WriteLine("\nTransaction Id : "+ transaction.TransactionId);
-                    Console.WriteLine("Source AccountId : " + transaction.SourceAccountId);
-                    Console.WriteLine("Amount Transfered : " + transaction.Amount);
-                    Console.WriteLine("Destination AccountId : " + transaction.DestinationAccountId);
-                    Console.WriteLine("Transaction Time : " + transaction.Time+"\n");
+                    Console.WriteLine("\nTransaction Id : " + transaction.TransactionId);
+                    Console.WriteLine(transaction.Amount + " INR is debited in " + transaction.SourceAccountId);
+                    Console.WriteLine(transaction.Amount + " INR is credited to " + transaction.DestinationAccountId);
                 }
             }
         }

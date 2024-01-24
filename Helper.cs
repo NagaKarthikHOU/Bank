@@ -46,7 +46,7 @@ namespace Bank
             }
             
         }
-        public static void StaffActions(BankStaffService staffService)
+        public static void StaffActions(IBankStaffService staffService)
         {
             while (true)
             {
@@ -57,7 +57,7 @@ namespace Bank
                 Console.WriteLine("5. Add service charge for same bank account");
                 Console.WriteLine("6. Add service charge for other bank account");
                 Console.WriteLine("7. View account transaction history");
-                Console.WriteLine("8. Revert transaction\n9. Exit");
+                Console.WriteLine("8. Revert transaction\n9. Back");
                 int option = Helper.Input<int>();
                 string accountId = "";
                 switch (option)
@@ -102,9 +102,11 @@ namespace Bank
                         staffService.ViewTransactionHistory(accountId);
                         break;
                     case 8:
+                        Console.Write("Enter Recipient Bank Name : ");
+                        string recipientBankName = Input<string>(); 
                         Console.Write("Enter Transaction Id : ");
                         string transactionId = Input<string>();
-                        staffService.RevertTransaction(transactionId);
+                        staffService.RevertTransaction(recipientBankName,transactionId);
                         break;
                     case 9:
                         return;
@@ -132,12 +134,12 @@ namespace Bank
             return Input<string>();
         }
 
-        public static void PerformTransactions(Account account,AccountHolderService userService)
+        public static void PerformTransactions(Account account,IAccountHolderService userService,BankService bankService)
         {
             while (true)
             {
                 Console.WriteLine("\nChoose your option");
-                Console.WriteLine("1. Deposit Amount\n2. WithDraw Amount\n3. Transfer Funds\n4. Check Balance\n5. Transaction History\n6. Exit");
+                Console.WriteLine("1. Deposit Amount\n2. WithDraw Amount\n3. Transfer Funds\n4. Check Balance\n5. Transaction History\n6. Back");
                 int op = Helper.Input<int>();
                 switch (op)
                 {
@@ -146,7 +148,7 @@ namespace Bank
                         decimal depositeAmount = Helper.Input<decimal>();
                         Console.WriteLine("Enter Currency : ");
                         string currency = Helper.Input<string>();
-                        decimal convertedAmount = userService.ConvertCurrency(currency,depositeAmount);
+                        decimal convertedAmount = bankService.ConvertCurrency(currency,depositeAmount);
                         userService.Deposite(account, convertedAmount);
                         break;
                     case 2:

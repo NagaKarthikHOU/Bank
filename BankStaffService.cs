@@ -8,22 +8,25 @@ using System.Transactions;
 
 namespace Bank
 {
-    class BankStaffService
+    interface IBankStaffService
+    {
+        void CreateAccount(string username, string password);
+        void UpdateAccount(string accountId);
+        void DeleteAccount(string accountId);
+        void AddCurrency(string currency, decimal exchangeRate);
+        void AddServiceChargeSameBank(string serviceType, decimal charge);
+        void AddServiceChargeOtherBank(string serviceType, decimal charge);
+        void ViewTransactionHistory(string accountId);
+        void RevertTransaction(string recipientBankName, string transactionId);
+    }
+    class BankStaffService:IBankStaffService
     {
         private Bank bank;
         public BankStaffService(Bank bank)
         {
             this.bank = bank;
         }
-        public void CreateBankStaff(string name, string password)
-        {
-            Staff staff = new Staff(name, password);
-            bank.staff.Add(staff);
-        }
-        public Staff AuthenticateStaff(string name, string password)
-        {
-            return bank.staff.Find(u => u.Name == name && u.Password == password);
-        }
+        
         public void CreateAccount(string username, string password)
         {
             string accountId = username.Substring(0, 3) + DateTime.Now.ToString("ddMMyyyy");
@@ -109,25 +112,43 @@ namespace Bank
         {
             foreach (var transaction in bank.transactions)
             {
-                if (transaction.SourceAccountId == accountId)
+                if (transaction.SourceAccountId == accountId || transaction.DestinationAccountId == accountId)
                 {
                     Console.WriteLine("\nTransaction Id : " + transaction.TransactionId);
-                    Console.WriteLine("Source AccountId : " + transaction.SourceAccountId);
-                    Console.WriteLine("Amount Transfered : " + transaction.Amount);
-                    Console.WriteLine("Destination AccountId : " + transaction.DestinationAccountId);
-                    Console.WriteLine("Transaction Time : " + transaction.Time + "\n");
+                    Console.WriteLine(transaction.Amount + " INR is debited in " + transaction.SourceAccountId);
+                    Console.WriteLine(transaction.Amount + " INR is credited to " + transaction.DestinationAccountId);
                 }
             }
         }
-        public void RevertTransaction(string transactionId)
+        public void RevertTransaction(string recipientBankName,string transactionId)
         {
-            Transaction transaction = bank.transactions.Find(a=>a.TransactionId==transactionId);
-            var sourceAccount = bank.accounts.Find(a => a.AccountId == transaction.SourceAccountId);
-            var destinationAccount = bank.accounts.Find(a => a.AccountId == transaction.DestinationAccountId);
-            sourceAccount.Balance += transaction.Amount;
-            destinationAccount.Balance -= transaction.Amount;
-            bank.transactions.Remove(transaction);
-            Console.WriteLine("Transaction Reverted Successfully");
+            if(bank.BankName == recipientBankName)
+            {
+                Transaction transaction = bank.transactions.Find(a => a.TransactionId == transactionId);
+                var sourceAccount = bank.accounts.Find(a => a.AccountId == transaction.SourceAccountId);
+                var destinationAccount = bank.accounts.Find(a => a.AccountId == transaction.DestinationAccountId);
+                if(sourceAccount != null && destinationAccount != null)
+                {
+                    sourceAccount.Balance += transaction.Amount;
+                    destinationAccount.Balance -= transaction.Amount;
+                    bank.transactions.Remove(transaction);
+                    Console.WriteLine("Transaction Reverted Successfully");
+                }
+            }
+            else
+            {
+                var anotherBank = StartUp.banks.Find(a=>a.BankName == recipientBankName);
+                Transaction transaction = bank.transactions.Find(a => a.TransactionId == transactionId);
+                var sourceAccount = bank.accounts.Find(a => a.AccountId == transaction.SourceAccountId);
+                var destinationAccount = anotherBank.accounts.Find(a => a.AccountId == transaction.DestinationAccountId);
+                if (sourceAccount != null && destinationAccount != null)
+                {
+                    sourceAccount.Balance += transaction.Amount;
+                    destinationAccount.Balance -= transaction.Amount;
+                    bank.transactions.Remove(transaction);
+                    Console.WriteLine("Transaction Reverted Successfully");
+                }
+            }
         }
     }
 }
