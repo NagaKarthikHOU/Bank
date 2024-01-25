@@ -6,15 +6,14 @@ using System.Threading.Tasks;
 
 namespace Bank
 {
-    class Transaction
+    internal class Transaction
     {
         public string TransactionId { get; set; }
         public string SourceAccountId { get; set; }
         public string DestinationAccountId { get; set; }
         public decimal Amount { get; set; } 
-
-        public string Time { get; set; }
-        public Transaction(string transactionId,string sourceAccountId,string destinationAccountId,decimal amount,string time)
+        public DateTime Time { get; }
+        public Transaction(string transactionId,string sourceAccountId,string destinationAccountId,decimal amount,DateTime time)
         {
             TransactionId = transactionId;
             SourceAccountId = sourceAccountId;

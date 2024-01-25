@@ -12,7 +12,7 @@ namespace Bank
         public string AccountHolderName {  get; set; }
         public string Password { get; set; }
         public decimal Balance { get; set; } = 0;
-
+        public List<Transaction> transactions = new List<Transaction>();
         public string BankName { get; set; }
         public Account(string accountId,string accountHolderName, string password)
         {

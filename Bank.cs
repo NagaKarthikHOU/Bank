@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Bank
 {
-    class Bank
+    internal class Bank
     {
         public string BankName { get; set; }
         public string BankId { get; set; }
@@ -18,7 +18,6 @@ namespace Bank
         public List<Staff> staff = new List<Staff>();
         public List<Account> accounts = new List<Account>();
         public Dictionary<string,decimal> currency = new Dictionary<string,decimal>();
-        public List<Transaction> transactions = new List<Transaction>();
 
         public string defaultCurrency = "INR";
 

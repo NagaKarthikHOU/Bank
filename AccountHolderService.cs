@@ -1,84 +1,49 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Transactions;
 
 namespace Bank
 {
     interface IAccountHolderService
     {
-        void Deposite(Account account,decimal amount);
-        void Withdraw(Account account,decimal amount);
+        void Deposite(Account account, decimal amount);
+        void Withdraw(Account account, decimal amount);
+        void TransactionHistory(Account account, TimeSpan timeRange);
         void TransferFunds(string bankName, string recipientAccountId, Account account, decimal amount, string serviceType);
-        void TransactionHistory(string accountId);
-        
-
     }
-    class AccountHolderService : IAccountHolderService
+    internal class AccountHolderService : IAccountHolderService
     {
-        private Bank bank;
-        public AccountHolderService(Bank bank)
+        private Bank _bank;
+        public AccountService accountService;
+        public AccountHolderService(string bankId)
         {
-            this.bank = bank;
+            Bank bank = CentralBank.banks.Find(x => x.BankId == bankId);
+            accountService = new AccountService(bankId);
         }
-        
+
         public void Deposite(Account account,decimal amount)
         {
-             account.Balance += amount;
-             DateTime dateTime = DateTime.Now;
-             string time = dateTime.ToString("HH:mm:ss");
-             string transactionId = "TXN" + bank.BankId + account.AccountId + time;
-             Transaction transaction = new Transaction(transactionId,account.AccountId,account.AccountId,amount,time);
-             bank.transactions.Add(transaction);
-             Console.WriteLine("Amount added Successfully");
-             Console.WriteLine("Transaction Id : " + transactionId);
+             accountService.Deposite(account, amount);
         }
         public void Withdraw(Account account, decimal amount)
         {
-            if (account.Balance >= amount)
-            {
-                account.Balance -= amount;
-                DateTime dateTime = DateTime.Now;
-                string time = dateTime.ToString("HH:mm:ss");
-                string transactionId = "TXN" + bank.BankId + account.AccountId + time;
-                Transaction transaction = new Transaction(transactionId, account.AccountId, account.AccountId, amount,time);
-                bank.transactions.Add(transaction);
-                Console.WriteLine("Withdraw Successfull");
-                Console.WriteLine("Transaction Id : " + transactionId);
-            }
-            else
-            {
-                Console.WriteLine("Insufficient funds");
-            }
+            accountService.Withdraw(account, amount);
         }
         public void TransferFunds(string bankName,string recipientAccountId,Account account,decimal amount,string serviceType)
         {
-            decimal taxAmount = 0;
-            if(bank.BankName ==  bankName)
+            if(_bank.BankName ==  bankName)
             {
-                var recipientAccount = bank.accounts.Find(a => a.AccountId == recipientAccountId);
-                if (recipientAccount != null)
+                var recipientAccount = _bank.accounts.Find(a => a.AccountId == recipientAccountId);
+                if (recipientAccount is not null)
                 {
-                    if (account.Balance >= amount)
+                    decimal taxAmount = FindSameBankTaxAmount(serviceType, amount);
+                    if (account.Balance + taxAmount >= amount)
                     {
-                        if (serviceType == "RTGS")
-                        {
-                            taxAmount = amount * bank.RTGSChargeSameBank;
-                        }
-                        else if (serviceType == "IMPS")
-                        {
-                            taxAmount = amount * bank.IMPSChargeSameBank;
-                        }
-                        account.Balance = account.Balance - amount - taxAmount;
-                        recipientAccount.Balance += amount;
-                        DateTime dateTime = DateTime.Now;
-                        string time = dateTime.ToString("HH:mm:ss");
-                        string transactionId = "TXN" + bank.BankId + account.AccountId + time;
-                        Transaction transaction = new Transaction(transactionId, account.AccountId, recipientAccountId, amount, time);
-                        bank.transactions.Add(transaction);
-                        Console.WriteLine("Transfer successfull");
-                        Console.WriteLine("Transaction Id : " + transactionId);
+                        PerformTransaction(account,recipientAccount,amount,taxAmount,_bank);
                     }
                     else
                     {
@@ -92,30 +57,14 @@ namespace Bank
             }
             else
             {
-                Bank recipientBank = StartUp.banks.Find(a=>a.BankName == bankName);
+                Bank recipientBank = CentralBank.banks.Find(a=>a.BankName == bankName);
                 var recipientAccount = recipientBank.accounts.Find(a => a.AccountId == recipientAccountId);
                 if (recipientAccount != null)
                 {
-                    if (account.Balance >= amount)
+                    decimal taxAmount = FindOtherBankTaxAmount(serviceType, amount);
+                    if (account.Balance + taxAmount >= amount)
                     {
-                        if (serviceType == "RTGS")
-                        {
-                            taxAmount = amount * bank.RTGSChargeOtherBank;
-                        }
-                        else if (serviceType == "IMPS")
-                        {
-                            taxAmount = amount * bank.IMPSChargeOtherBank;
-                        }
-                        account.Balance = account.Balance - amount - taxAmount;
-                        recipientAccount.Balance += amount;
-                        DateTime dateTime = DateTime.Now;
-                        string time = dateTime.ToString("HH:mm:ss");
-                        string transactionId = "TXN" + recipientBank.BankId + account.AccountId + time;
-                        Transaction transaction = new Transaction(transactionId, account.AccountId, recipientAccountId, amount, time);
-                        bank.transactions.Add(transaction);
-                        recipientBank.transactions.Add(transaction);
-                        Console.WriteLine("Transfer successfull");
-                        Console.WriteLine("Transaction Id : " + transactionId);
+                        PerformTransaction(account, recipientAccount, amount, taxAmount, recipientBank);
                     }
                     else
                     {
@@ -124,18 +73,59 @@ namespace Bank
                 }
             }
         }
-      
-        public void TransactionHistory(string accountId)
+
+        public void TransactionHistory(Account account, TimeSpan timeRange)
         {
-            foreach (var transaction in bank.transactions)
+            accountService.TransactionHistory(account, timeRange);
+        }
+
+        private decimal FindOtherBankTaxAmount(string serviceType, decimal amount)
+        {
+            decimal taxAmount = 0;
+            if (serviceType == "RTGS")
             {
-                if (transaction.SourceAccountId == accountId || transaction.DestinationAccountId == accountId)
-                {
-                    Console.WriteLine("\nTransaction Id : " + transaction.TransactionId);
-                    Console.WriteLine(transaction.Amount + " INR is debited in " + transaction.SourceAccountId);
-                    Console.WriteLine(transaction.Amount + " INR is credited to " + transaction.DestinationAccountId);
-                }
+                taxAmount = amount * _bank.RTGSChargeOtherBank;
             }
+            else if (serviceType == "IMPS")
+            {
+                taxAmount = amount * _bank.IMPSChargeOtherBank;
+            }
+            else
+            {
+                Console.WriteLine("Enter Valid Service Type");
+            }
+            return taxAmount;
+        }
+        private decimal FindSameBankTaxAmount(string serviceType, decimal amount)
+        {
+            decimal taxAmount = 0;
+            if (serviceType == "RTGS")
+            {
+                taxAmount = amount * _bank.RTGSChargeOtherBank;
+            }
+            else if (serviceType == "IMPS")
+            {
+                taxAmount = amount * _bank.IMPSChargeOtherBank;
+            }
+            else
+            {
+                Console.WriteLine("Enter Valid Service Type");
+            }
+            return taxAmount;
+        }
+
+        private void PerformTransaction(Account account,Account recipientAccount,decimal amount,decimal taxAmount,Bank myBank)
+        {
+            account.Balance = account.Balance - amount - taxAmount;
+            recipientAccount.Balance += amount;
+            DateTime dateTime = DateTime.Now;
+            long time = dateTime.Ticks;
+            string transactionId = "TXN" + myBank.BankId + account.AccountId + time;
+            Transaction transaction = new Transaction(transactionId, account.AccountId, recipientAccount.AccountId, amount, dateTime);
+            account.transactions.Add(transaction);
+            recipientAccount.transactions.Add(transaction);
+            Console.WriteLine("Transfer successfull");
+            Console.WriteLine("Transaction Id : " + transactionId);
         }
     }
 }
