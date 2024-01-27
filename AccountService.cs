@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -11,7 +11,7 @@ namespace Bank
         public Bank bank;
         public AccountService(string bankId)
         {
-            Bank bank = CentralBank.banks.Find(x => x.BankId == bankId);
+            bank = CentralBank.banks.Find(x => x.BankId == bankId);
         }
         public void Deposite(Account account, decimal amount)
         {
