@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -21,7 +21,7 @@ namespace Bank
         public AccountService accountService;
         public AccountHolderService(string bankId)
         {
-            Bank bank = CentralBank.banks.Find(x => x.BankId == bankId);
+            _bank = CentralBank.banks.Find(x => x.BankId == bankId);
             accountService = new AccountService(bankId);
         }
 
@@ -59,7 +59,7 @@ namespace Bank
             {
                 Bank recipientBank = CentralBank.banks.Find(a=>a.BankName == bankName);
                 var recipientAccount = recipientBank.accounts.Find(a => a.AccountId == recipientAccountId);
-                if (recipientAccount != null)
+                if (recipientAccount is not null)
                 {
                     decimal taxAmount = FindOtherBankTaxAmount(serviceType, amount);
                     if (account.Balance + taxAmount >= amount)
