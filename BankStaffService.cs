@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Data.Common;
@@ -29,7 +29,7 @@ namespace Bank
         private AccountService accountService;
         public BankStaffService(string bankId)
         {
-            Bank bank = CentralBank.banks.Find(x => x.BankId == bankId);
+            _bank = CentralBank.banks.Find(x => x.BankId == bankId);
             accountService = new AccountService(bankId);
         }
 
@@ -43,7 +43,7 @@ namespace Bank
         public void UpdateAccount(string accountId)
         {
             Account account = _bank.accounts.Find(a => a.AccountId == accountId);
-            if(account != null)
+            if(account is not null)
             {
                 Console.WriteLine("1. Change UserName\n2. Change password");
                 int option = Helper.Input<int>();
@@ -70,7 +70,7 @@ namespace Bank
         public void DeleteAccount(string accountId)
         {
             Account account = _bank.accounts.Find(a => a.AccountId == accountId);
-            if(account != null)
+            if(account is not null)
             {
                 _bank.accounts.Remove(account);
                 Console.WriteLine("Account Successfully Removed");
@@ -118,7 +118,7 @@ namespace Bank
             if (_bank.BankName == recipientBankName)
             {
                 var destinationAccount = _bank.accounts.Find(a => a.AccountId == transaction.DestinationAccountId);
-                if(sourceAccount != null && destinationAccount != null)
+                if(sourceAccount is not null && destinationAccount is not null)
                 {
                     PerformRevertTransaction(transaction,sourceAccount, destinationAccount,transactionId);
                 }
@@ -127,7 +127,7 @@ namespace Bank
             {
                 var anotherBank = CentralBank.banks.Find(a=>a.BankName == recipientBankName);
                 var destinationAccount = anotherBank.accounts.Find(a => a.AccountId == transaction.DestinationAccountId);
-                if (sourceAccount != null && destinationAccount != null)
+                if (sourceAccount is not null && destinationAccount is not null)
                 {
                   PerformRevertTransaction(transaction, sourceAccount, destinationAccount, transactionId);
                 }
