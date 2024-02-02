@@ -90,14 +90,7 @@ namespace Bank
         }
         public void AddCurrency(string currency, decimal exchangeRate)
         {
-            if (!_bank.currency.ContainsKey(currency))
-            {
-                _bank.currency.Add(currency, exchangeRate);  
-            }
-            else
-            {
-                Console.WriteLine("Currency already existed");
-            }
+            _bank.currency.Add(new Currency(currency, exchangeRate)); 
         }
         public void AddServiceChargeSameBank(string serviceType, decimal charge)
         {

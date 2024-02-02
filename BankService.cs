@@ -28,9 +28,10 @@ namespace Bank
         {
             return bank.accounts.Find(u => u.AccountHolderName == username && u.Password == password);
         }
-        public decimal ConvertCurrency(string currency, decimal amount)
+        public decimal ConvertCurrency(string currencyName, decimal amount)
         {
-            amount *=  bank.currency[currency];
+            Currency currency = bank.currency.Find(x => x.CurrencyName == currencyName);
+            amount *=  currency.ExchangeRate;
             return amount;
         }
     }

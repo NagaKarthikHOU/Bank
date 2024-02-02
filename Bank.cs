@@ -17,15 +17,13 @@ namespace Bank
 
         public List<Staff> staff = new List<Staff>();
         public List<Account> accounts = new List<Account>();
-        public Dictionary<string,decimal> currency = new Dictionary<string,decimal>();
-
-        public string defaultCurrency = "INR";
+        public List<Currency> currency = new List<Currency>();
 
         public Bank(string bankName)
         {
             BankName = bankName;
             BankId = bankName.Substring(0,3) + DateTime.Now.ToString("ddMMyyyy");
-            currency.Add(defaultCurrency, 1);
+            currency.Add(new Currency("INR",1));
         }
     }
 }
