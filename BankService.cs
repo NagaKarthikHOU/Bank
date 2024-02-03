@@ -3,35 +3,46 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Dapper;
+using Microsoft.Data.SqlClient;
 
 namespace Bank
 {
     class BankService
     {
         public Bank bank;
-        public BankService(string bankId)
+        public SqlConnection connection;
+        public BankService(string bankId,SqlConnection connect)
         {
-            bank = CentralBank.banks.Find(x => x.BankId == bankId);
+            connection = connect;
+            connection.Open();
+            bank = connection.QueryFirstOrDefault<Bank>("SELECT * FROM BANK WHERE BankId = @BankId", new { BankId = bankId });
         }
         
         public void CreateBankStaff(string name, string password)
         {
-            
-            Staff staff = new Staff(name, password);
-            bank.staff.Add(staff);
+
+            connection.Open();
+            connection.Execute("INSERT INTO Staff (Name, Password, BankId) VALUES (@Name, @Password, @BankId)", new { Name = name, Password = password, BankId = bank.BankId });
         }
         public Staff AuthenticateStaff(string name, string password)
         {
-            return bank.staff.Find(u => u.Name == name && u.Password == password);
+            connection.Open();
+            return connection.QueryFirstOrDefault<Staff>("SELECT * FROM Staff WHERE Name = @Name AND Password = @Password AND BankId = @BankId", new { Name = name, Password = password, BankId = bank.BankId });
         }
         public Account AuthenticateUser(string username, string password)
         {
-            return bank.accounts.Find(u => u.AccountHolderName == username && u.Password == password);
+            connection.Open();
+            return connection.QueryFirstOrDefault<Account>("SELECT * FROM Account WHERE AccountHolderName = @AccountHolderName AND Password = @Password", new { AccountHolderName = username, Password = password});
         }
         public decimal ConvertCurrency(string currencyName, decimal amount)
         {
-            Currency currency = bank.currency.Find(x => x.CurrencyName == currencyName);
-            amount *=  currency.ExchangeRate;
+            connection.Open();
+            Currency currency = connection.QueryFirstOrDefault<Currency>("SELECT * FROM Currency WHERE CurrencyName = @CurrencyName", new { CurrencyName = currencyName });
+            if (currency != null)
+            {
+                amount *= currency.ExchangeRate;
+            }
             return amount;
         }
     }

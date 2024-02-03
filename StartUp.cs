@@ -1,11 +1,16 @@
 ﻿using System.Runtime.CompilerServices;
-
+using System;
+using static System.Runtime.InteropServices.JavaScript.JSType;
+using Dapper;
+using Microsoft.Data.SqlClient;
 namespace Bank
 {
     class StartUp
     {
         static void Main()
         {
+            string connectionString = "Data Source = (LocalDb)\\MSSQLLocalDB;Initial Catalog = BankDB; Integrated Security = True";
+            var connection = new SqlConnection(connectionString);
             CentralBank centralBank = new CentralBank();    
             while (true)
             {
@@ -15,18 +20,18 @@ namespace Bank
                 int a = Helper.Input<int>();
                 if (a == 1)
                 {
-                    centralBank.SetUpBank();
+                    centralBank.SetUpBank(connection);
                 }
                 else if (a == 2)
                 {
-                    centralBank.ContinueWithExistingBank();
+                    centralBank.ContinueWithExistingBank(connection);
                 }
                 else if (a == 3)
                 {
                     return;
                 }
-                
-            }    
+            }
+            
         }
     }
 }

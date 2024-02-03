@@ -1,3 +1,5 @@
+using Dapper;
+using Microsoft.Data.SqlClient;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,31 +11,46 @@ namespace Bank
     class AccountService
     {
         public Bank bank;
-        public AccountService(string bankId)
+        public SqlConnection connection;
+        public AccountService(string bankId, SqlConnection connect)
         {
-            bank = CentralBank.banks.Find(x => x.BankId == bankId);
+            connection = connect;
+            bank = connection.QueryFirstOrDefault<Bank>("SELECT * FROM BANK WHERE BankId = @BankId", new { BankId = bankId });
         }
-        public void Deposite(Account account, decimal amount)
+        public void Deposite(string accountId, decimal amount)
         {
+            decimal balance = GetAccountBalance(accountId);
+            balance += amount;
+            Account account = GetAccount(accountId);
+            connection.Open();
+            connection.Execute("UPDATE ACCOUNT SET Balance = @Balance WHERE AccountId = @AccountId", new { Balance = balance, AccountId=accountId});
             account.Balance += amount;
             DateTime dateTime = DateTime.Now;
             long time = dateTime.Ticks;
             string transactionId = "TXN" + bank.BankId + account.AccountId + time;
-            Transaction transaction = new Transaction(transactionId, account.AccountId, account.AccountId, amount, dateTime);
-            account.transactions.Add(transaction);
+
+            connection.Open();
+            connection.Execute("INSERT INTO Transaction (TransactionId, SourceAccountId, DestinationAccountId, Amount, Time) VALUES (@TransactionId, @SourceAccountId, @DestinationAccountId, @Amount, @Time)",
+                new { TransactionId = transactionId, SourceAccountId = accountId, DestinationAccountId = accountId, Amount = amount, Time = dateTime });
+
             Console.WriteLine("Amount added Successfully");
             Console.WriteLine("Transaction Id : " + transactionId);
         }
-        public void Withdraw(Account account, decimal amount)
+        public void Withdraw(string accountId, decimal amount)
         {
-            if (account.Balance >= amount)
+            decimal balance = GetAccountBalance(accountId);
+            if (balance >= amount)
             {
-                account.Balance -= amount;
+                balance -= amount;
+                Account account = GetAccount(accountId);
                 DateTime dateTime = DateTime.Now;
                 long time = dateTime.Ticks;
                 string transactionId = "TXN" + bank.BankId + account.AccountId + time;
-                Transaction transaction = new Transaction(transactionId, account.AccountId, account.AccountId, amount, dateTime);
-                account.transactions.Add(transaction);
+
+                connection.Open();
+                connection.Execute("INSERT INTO Transaction (TransactionId, SourceAccountId, DestinationAccountId, Amount, Time) VALUES (@TransactionId, @SourceAccountId, @DestinationAccountId, @Amount, @Time)",
+                    new { TransactionId = transactionId, SourceAccountId = accountId, DestinationAccountId = accountId, Amount = amount, Time = dateTime });
+
                 Console.WriteLine("Withdraw Successfull");
                 Console.WriteLine("Transaction Id : " + transactionId);
             }
@@ -42,35 +59,44 @@ namespace Bank
                 Console.WriteLine("Insufficient funds");
             }
         }
-        public void TransactionHistory(Account account, TimeSpan timeRange)
+        public void TransactionHistory(string accountId, TimeSpan timeRange)
         {
-            DateTime startDate = DateTime.Now - timeRange;
+            //DateTime startDate = DateTime.Now - timeRange;
 
-            Console.WriteLine("Transaction history for " + account.AccountHolderName + "'s account " + account.AccountId + " in the last " + timeRange.TotalDays + " days:");
+            //Console.WriteLine("Transaction history for " + account.AccountHolderName + "'s account " + account.AccountId + " in the last " + timeRange.TotalDays + " days:");
 
-            var filteredTransactions = account.transactions
-                .Where(transaction => transaction.Time >= startDate)
-                .OrderBy(transaction => transaction.Time);
+            //var filteredTransactions = account.transactions
+            //    .Where(transaction => transaction.Time >= startDate)
+            //    .OrderBy(transaction => transaction.Time);
 
-            if (filteredTransactions.Any())
-            {
-                foreach (var transaction in filteredTransactions)
-                {
-                    Console.WriteLine("\nTransaction Id : " + transaction.TransactionId);
-                    if (transaction.SourceAccountId == account.AccountId)
-                    {
-                        Console.WriteLine("Dear user " + transaction.SourceAccountId + "debited by " + transaction.Amount + "INR on " + transaction.Time + " to " + transaction.DestinationAccountId);
-                    }
-                    else if (transaction.DestinationAccountId == account.AccountId)
-                    {
-                        Console.WriteLine("Dear user " + transaction.SourceAccountId + "credited by " + transaction.Amount + "INR on " + transaction.Time + " by " + transaction.DestinationAccountId);
-                    }
-                }
-            }
-            else
-            {
-                Console.WriteLine("No transactions found in the specified time range.");
-            }
+            //if (filteredTransactions.Any())
+            //{
+            //    foreach (var transaction in filteredTransactions)
+            //    {
+            //        Console.WriteLine("\nTransaction Id : " + transaction.TransactionId);
+            //        if (transaction.SourceAccountId == account.AccountId)
+            //        {
+            //            Console.WriteLine("Dear user " + transaction.SourceAccountId + "debited by " + transaction.Amount + "INR on " + transaction.Time + " to " + transaction.DestinationAccountId);
+            //        }
+            //        else if (transaction.DestinationAccountId == account.AccountId)
+            //        {
+            //            Console.WriteLine("Dear user " + transaction.SourceAccountId + "credited by " + transaction.Amount + "INR on " + transaction.Time + " by " + transaction.DestinationAccountId);
+            //        }
+            //    }
+            //}
+            //else
+            //{
+            //    Console.WriteLine("No transactions found in the specified time range.");
+            //}
+        }
+        public Account GetAccount(string accountId)
+        {
+            connection.Open();
+            return connection.QueryFirstOrDefault<Account>("SELECT * FROM ACCOUNT WHERE AccountId = @AccountId", new { AccountId = accountId });
+        }
+        public decimal GetAccountBalance(string accountId)
+        {
+            return connection.ExecuteScalar<decimal>("SELECT Balance FROM Account WHERE AccountId = @AccountId", new { AccountId = accountId });
         }
     }
 }

@@ -1,28 +1,33 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
+using Dapper;
+using System;
+using System.Collections.Generic;
+using System.Data.SqlClient;
+using System.Linq;
+using Microsoft.Data.SqlClient;
 namespace Bank
 {
     internal class CentralBank
     {
-        public static List<Bank> banks = new List<Bank>();
-        public void SetUpBank()
+        public void SetUpBank(SqlConnection connection)
         {
             Console.WriteLine("Enter Bank Name : ");
             string bankName = Helper.Input<string>().ToLower();
-            Bank bank = new Bank(bankName);
-            banks.Add(bank);
-            Helper.BankSimulation(bank.BankId);
+            string bankId = bankName.Substring(0, 3) + DateTime.Now.ToString("ddMMyyyy");
+            connection.Open();
+            connection.Execute("INSERT INTO Bank (BankName,BankId) VALUES (@BankName,@BankId)", new { BankName = bankName,BankId=bankId });
+            connection.Close();
+            Helper.BankSimulation(bankId,connection);
         }
-        public void ContinueWithExistingBank()
+        public void ContinueWithExistingBank(SqlConnection connection)
         {
             Console.WriteLine("Enter Bank Name : ");
             string bankName = Helper.Input<string>();
-            Bank bank = banks.FirstOrDefault(a => a.BankName == bankName);
-            Helper.BankSimulation(bank.BankId);
+            connection.Open();
+            Bank bank = connection.QuerySingle<Bank>("SELECT * FROM Bank WHERE BankName = @BankName", new { BankName = bankName });
+            Helper.BankSimulation(bank.BankId,connection);
         }
     }
 }
