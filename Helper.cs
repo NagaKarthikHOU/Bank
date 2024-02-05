@@ -116,47 +116,56 @@ namespace Bank
                         staffService.AddServiceChargeOtherBank(serviceType1, charge1);
                         break;
                     case 9:
-                        Console.Write("Enter AccountId : ");
+                        Console.WriteLine("Enter AccountId : ");
                         accountId = Input<string>();
-                        Console.WriteLine("Enter Time Range : ");
-                        TimeSpan time = Helper.Input<TimeSpan>();
-                        staffService.TransactionHistory(accountId,time);
+                        Console.WriteLine("Enter the time range for transaction history (e.g., '7 days', '1 month', '2 years'): ");
+                        string userInput = Input<string>();
+
+                        if (TryParseTimeSpan(userInput, out TimeSpan userTimeRange))
+                        {
+                            staffService.TransactionHistory(accountId, userTimeRange);
+                        }
+                        else
+                        {
+                            Console.WriteLine("Invalid input. Please enter a valid time range.");
+                        }
                         break;
                     case 10:
-                        //Console.Write("Enter AccountId : ");
-                        //accountId = Input<string>();
-                        //Console.Write("Enter Recipient Bank Name : ");
-                        //string recipientBankName = Input<string>();
-                        //Console.Write("Enter Transaction Id : ");
-                        //string transactionId = Input<string>();
-                        //Account sourceAccount = bank.accounts.FirstOrDefault(x => x.AccountId == accountId);
-                        //staffService.RevertTransaction(sourceAccount,recipientBankName,transactionId);
-                        //break;
+                        Console.Write("Enter AccountId : ");
+                        accountId = Input<string>();
+                        Console.Write("Enter Recipient Account Id : ");
+                        string recipientAccountId = Input<string>();
+                        Console.Write("Enter Transaction Id : ");
+                        string transactionId = Input<string>();
+                        staffService.RevertTransaction(accountId, recipientAccountId, transactionId);
+                        break;
                     case 11:
                         return;
                 }
             }
         }
-        public static void BankSimulation(string bankId,SqlConnection connection)
+        public static void BankSimulation(string bankId,string connectionString)
         {
-            BankService bankService = new BankService(bankId,connection);
-            IBankStaffService staffService = new BankStaffService(bankId,connection);
-            IAccountHolderService userService = new AccountHolderService(bankId,connection);
+            BankService bankService = new BankService(bankId,connectionString);
+            IBankStaffService staffService = new BankStaffService(bankId,connectionString);
+            IAccountHolderService userService = new AccountHolderService(bankId,connectionString);
             while (true)
             {
                 Console.WriteLine("\n1. Create Bank Staff \n2. Login as bank staff \n3. Login as Account holder\n4. Back");
-                int choice = Helper.Input<int>();
+                int choice = Input<int>();
                 switch (choice)
                 {
                     case 1:
-                        bankService.CreateBankStaff(StaffMemberName(), StaffMemberPassword());
+                        bankService.CreateBankStaff(StaffMemberName(), StaffMemberPassword(),bankId);
                         break;
                     case 2:
+                        Console.WriteLine("Enter Bank Id : ");
+                        string bank_Id = Input<string>();    
                         Console.Write("Enter Bank Staff Username : ");
-                        string staffUsername = Helper.Input<string>();
+                        string staffUsername = Input<string>();
                         Console.Write("Enter Bank Staff Password : ");
-                        string staffPassword = Helper.Input<string>();
-                        Staff authenticateStaff = bankService.AuthenticateStaff(staffUsername, staffPassword);
+                        string staffPassword = Input<string>();
+                        Staff authenticateStaff = bankService.AuthenticateStaff(bank_Id,staffUsername, staffPassword);
                         if (authenticateStaff != null)
                         {
                             StaffActions(staffService, bankService);
@@ -170,7 +179,7 @@ namespace Bank
                         Account account = bankService.AuthenticateUser(Helper.AccountHolderName(), Helper.AccountHolderPassword());
                         if (account != null)
                         {
-                            PerformTransactions(userService, bankService);
+                            PerformTransactions(account,userService, bankService);
                         }
                         else
                         {
@@ -238,7 +247,7 @@ namespace Bank
 
             return false;
         }
-        public static void PerformTransactions(IAccountHolderService userService,BankService bankService)
+        public static void PerformTransactions(Account account,IAccountHolderService userService,BankService bankService)
         {
             while (true)
             {
@@ -253,26 +262,26 @@ namespace Bank
                         Console.WriteLine("Enter Currency : ");
                         string currency = Input<string>();
                         decimal convertedAmount = bankService.ConvertCurrency(currency,depositeAmount);
-                        //userService.Deposite(accountId, convertedAmount);
+                        userService.Deposite(account.AccountId, convertedAmount);
                         break;
                     case 2:
                         Console.WriteLine("Enter Withdraw Amount");
                         decimal withdrawAmount = Input<decimal>();
-                        //userService.Withdraw(accountId, withdrawAmount);
+                        userService.Withdraw(account.AccountId, withdrawAmount);
                         break;
                     case 3:
-                        Console.WriteLine("Enter Bank Name : ");
-                        string bankName = Input<string>();
+                        Console.WriteLine("Enter Recipient Bank Id : ");
+                        string bankId = Input<string>();
                         Console.WriteLine("Enter Recipient AccountId : ");
                         string accountId = Input<string>();
                         Console.WriteLine("Enter Amount to Transfer : ");
                         decimal amount = Input<decimal>();
                         Console.WriteLine("Enter Service Type : ");
                         string serviceType = Input<string>();
-                        //userService.TransferFunds(bankName,accountId, account, amount,serviceType);
+                        userService.TransferFunds(bankId,accountId, account, amount,serviceType);
                         break;
                     case 4:
-                        //Console.WriteLine(account.Balance + " INR ");
+                        Console.WriteLine(account.Balance + " INR ");
                         break;
                     case 5:
                         Console.WriteLine("Enter the time range for transaction history (e.g., '7 days', '1 month', '2 years'): ");
@@ -280,7 +289,7 @@ namespace Bank
 
                         if (TryParseTimeSpan(userInput, out TimeSpan userTimeRange))
                         {
-                           // userService.TransactionHistory(account,userTimeRange);
+                           userService.TransactionHistory(account.AccountId,userTimeRange);
                         }
                         else
                         {

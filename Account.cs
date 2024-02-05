@@ -14,11 +14,10 @@ namespace Bank
         public string Password { get; set; }
         public decimal Balance { get; set; } = 0;
         public string BankId { get; set; }
-        public Account(string accountId,string accountHolderName, string password)
+        public Account()
         {
-            AccountId = accountId;
-            AccountHolderName = accountHolderName;
-            Password = password;
+
         }
+
     }
 }

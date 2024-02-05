@@ -15,16 +15,10 @@ namespace Bank
         public decimal RTGSChargeOtherBank { get; set; } = (decimal)0.02;
         public decimal IMPSChargeOtherBank { get; set; } = (decimal)0.06;
 
-
-        public Bank(string bankName,string bankId,decimal rtgsSame,decimal impsSame,decimal rtgsDifferent,decimal impsdifferent)
+        public Bank()
         {
-            BankName = bankName;
-            BankId = bankId;
-            RTGSChargeSameBank = rtgsSame;
-            IMPSChargeSameBank = impsSame;
-            RTGSChargeOtherBank = rtgsDifferent;
-            RTGSChargeSameBank= impsdifferent;
-            //currency.Add(new Currency("INR",1));
+
         }
+
     }
 }

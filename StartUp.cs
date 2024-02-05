@@ -10,7 +10,6 @@ namespace Bank
         static void Main()
         {
             string connectionString = "Data Source = (LocalDb)\\MSSQLLocalDB;Initial Catalog = BankDB; Integrated Security = True";
-            var connection = new SqlConnection(connectionString);
             CentralBank centralBank = new CentralBank();    
             while (true)
             {
@@ -20,11 +19,11 @@ namespace Bank
                 int a = Helper.Input<int>();
                 if (a == 1)
                 {
-                    centralBank.SetUpBank(connection);
+                    centralBank.SetUpBank(connectionString);
                 }
                 else if (a == 2)
                 {
-                    centralBank.ContinueWithExistingBank(connection);
+                    centralBank.ContinueWithExistingBank(connectionString);
                 }
                 else if (a == 3)
                 {

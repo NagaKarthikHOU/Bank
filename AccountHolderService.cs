@@ -1,5 +1,6 @@
 using Dapper;
 using Microsoft.Data.SqlClient;
+using Microsoft.Identity.Client;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -14,22 +15,20 @@ namespace Bank
     {
         void Deposite(string accountIdt, decimal amount);
         void Withdraw(string accountId, decimal amount);
-        void TransactionHistory(Account account, TimeSpan timeRange);
+        void TransactionHistory(string accountId, TimeSpan timeRange);
         void TransferFunds(string bankName, string recipientAccountId, Account account, decimal amount, string serviceType);
     }
     internal class AccountHolderService : IAccountHolderService
     {
         public string bankId;
-        private Bank _bank;
         public AccountService accountService;
-        public SqlConnection connection;
-        public AccountHolderService(string bankId,SqlConnection connect)
+        private readonly string _connectionString;
+
+        public AccountHolderService(string bankId,string connectionString)
         {
             this.bankId = bankId;
-            connection = connect;
-            connection.Open();
-            _bank = connection.QueryFirstOrDefault<Bank>("SELECT * FROM BANK WHERE BankId = @BankId", new { BankId = bankId });
-            accountService = new AccountService(bankId, connection);
+            _connectionString = connectionString;
+            accountService = new AccountService(bankId, _connectionString);
         }
 
         public void Deposite(string accountId,decimal amount)
@@ -40,99 +39,115 @@ namespace Bank
         {
             accountService.Withdraw(accountId, amount);
         }
-        public void TransferFunds(string bankName,string recipientAccountId,Account account,decimal amount,string serviceType)
+        public void TransferFunds(string recipientBankId,string recipientAccountId,Account account,decimal amount,string serviceType)
         {
-            //if(_bank.BankName ==  bankName)
-            //{
-            //    var recipientAccount = _bank.accounts.Find(a => a.AccountId == recipientAccountId);
-            //    if (recipientAccount is not null)
-            //    {
-            //        decimal taxAmount = FindSameBankTaxAmount(serviceType, amount);
-            //        if (account.Balance + taxAmount >= amount)
-            //        {
-            //            PerformTransaction(account,recipientAccount,amount,taxAmount,_bank);
-            //        }
-            //        else
-            //        {
-            //            Console.WriteLine("Insufficient funds");
-            //        }
-            //    }
-            //    else
-            //    {
-            //        Console.WriteLine("Recipient Account Not Found");
-            //    }
-            //}
-            //else
-            //{
-            //    Bank recipientBank = CentralBank.banks.Find(a=>a.BankName == bankName);
-            //    var recipientAccount = recipientBank.accounts.Find(a => a.AccountId == recipientAccountId);
-            //    if (recipientAccount is not null)
-            //    {
-            //        decimal taxAmount = FindOtherBankTaxAmount(serviceType, amount);
-            //        if (account.Balance + taxAmount >= amount)
-            //        {
-            //            PerformTransaction(account, recipientAccount, amount, taxAmount, recipientBank);
-            //        }
-            //        else
-            //        {
-            //            Console.WriteLine("Insufficient funds");
-            //        }
-            //    }
-            //}
+            if (bankId == recipientBankId)
+            {
+                var recipientAccount = accountService.GetAccount(recipientAccountId);   
+                if (recipientAccount is not null)
+                {
+                    decimal taxAmount = FindSameBankTaxAmount(serviceType, amount);
+                    if (account.Balance + taxAmount >= amount)
+                    {
+                        PerformTransaction(account, recipientAccountId, amount, taxAmount);
+                    }
+                    else
+                    {
+                        Console.WriteLine("Insufficient funds");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("Recipient Account Not Found");
+                }
+            }
+            else
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    var recipientAccount = connection.QueryFirstOrDefault<Account>("Select * from Account where AccountId=@AccountId and BankId=@BankId", new {AccountId = recipientAccountId,BankId= recipientBankId });
+                    if (recipientAccount is not null)
+                    {
+                        decimal taxAmount = FindOtherBankTaxAmount(serviceType, amount);
+                        if (account.Balance + taxAmount >= amount)
+                        {
+                            PerformTransaction(account, recipientAccountId, amount, taxAmount);
+                        }
+                        else
+                        {
+                            Console.WriteLine("Insufficient funds");
+                        }
+                    }
+                }
+                
+            }
         }
 
-        public void TransactionHistory(Account account, TimeSpan timeRange)
+        public void TransactionHistory(string accountId, TimeSpan timeRange)
         {
-           // accountService.TransactionHistory(account, timeRange);
+           accountService.TransactionHistory(accountId, timeRange);
         }
 
         private decimal FindOtherBankTaxAmount(string serviceType, decimal amount)
         {
-            decimal taxAmount = 0;
-            if (serviceType == "RTGS")
+            using (var connection = new SqlConnection(_connectionString))
             {
-                taxAmount = amount * _bank.RTGSChargeOtherBank;
+                connection.Open();
+                Bank bank = connection.QueryFirstOrDefault<Bank>("Select * from Bank where BankId=@BankId", new {BankId=this.bankId});
+                decimal taxAmount = 0;
+                if (serviceType == "RTGS")
+                {
+                    taxAmount = amount * bank.RTGSChargeOtherBank;
+                }
+                else if (serviceType == "IMPS")
+                {
+                    taxAmount = amount * bank.IMPSChargeOtherBank;
+                }
+                else
+                {
+                    Console.WriteLine("Enter Valid Service Type");
+                }
+                return taxAmount;
+
             }
-            else if (serviceType == "IMPS")
-            {
-                taxAmount = amount * _bank.IMPSChargeOtherBank;
-            }
-            else
-            {
-                Console.WriteLine("Enter Valid Service Type");
-            }
-            return taxAmount;
+            
         }
         private decimal FindSameBankTaxAmount(string serviceType, decimal amount)
         {
-            decimal taxAmount = 0;
-            if (serviceType == "RTGS")
+            using (var connection = new SqlConnection(_connectionString))
             {
-                taxAmount = amount * _bank.RTGSChargeOtherBank;
+                connection.Open();
+                Bank bank = connection.QueryFirstOrDefault<Bank>("Select * from Bank where BankId=@BankId", new { BankId = this.bankId });
+                decimal taxAmount = 0;
+                if (serviceType == "RTGS")
+                {
+                    taxAmount = amount * bank.RTGSChargeSameBank;
+                }
+                else if (serviceType == "IMPS")
+                {
+                    taxAmount = amount * bank.IMPSChargeSameBank;
+                }
+                else
+                {
+                    Console.WriteLine("Enter Valid Service Type");
+                }
+                return taxAmount;
+
             }
-            else if (serviceType == "IMPS")
-            {
-                taxAmount = amount * _bank.IMPSChargeOtherBank;
-            }
-            else
-            {
-                Console.WriteLine("Enter Valid Service Type");
-            }
-            return taxAmount;
         }
 
-        private void PerformTransaction(Account account,Account recipientAccount,decimal amount,decimal taxAmount,Bank myBank)
+        private void PerformTransaction(Account account,string recipientAccountId,decimal amount,decimal taxAmount)
         {
-            //account.Balance = account.Balance - amount - taxAmount;
-            //recipientAccount.Balance += amount;
-            //DateTime dateTime = DateTime.Now;
-            //long time = dateTime.Ticks;
-            //string transactionId = "TXN" + myBank.BankId + account.AccountId + time;
-            //Transaction transaction = new Transaction(transactionId, account.AccountId, recipientAccount.AccountId, amount, dateTime);
-            //account.transactions.Add(transaction);
-            //recipientAccount.transactions.Add(transaction);
-            //Console.WriteLine("Transfer successfull");
-            //Console.WriteLine("Transaction Id : " + transactionId);
+            decimal sourceBalance = account.Balance - amount - taxAmount;
+            decimal destinationBalance = account.Balance + amount;
+            accountService.UpdateBalance(account.AccountId, sourceBalance);
+            accountService.UpdateBalance(recipientAccountId, destinationBalance);
+            DateTime dateTime = DateTime.Now;
+            long time = dateTime.Ticks;
+            string transactionId = "TXN" + account.BankId + account.AccountId + time;
+            accountService.AddTransaction(transactionId, account.AccountId, recipientAccountId, amount, dateTime);
+            Console.WriteLine("Transfer successfull");
+            Console.WriteLine("Transaction Id : " + transactionId);
         }
     }
 }

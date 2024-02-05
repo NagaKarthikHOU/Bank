@@ -8,12 +8,10 @@ namespace Bank
 {
     internal class Currency
     {
-        public string CurrencyName {  get; set; }
+        public string CurrencyCode {  get; set; }
         public decimal ExchangeRate {  get; set; }
-        public Currency(string currencyName, decimal exchangeRate)
-        {
-            CurrencyName = currencyName;
-            ExchangeRate = exchangeRate;
-        }   
+        public Currency() { 
+
+        } 
     }
 }
